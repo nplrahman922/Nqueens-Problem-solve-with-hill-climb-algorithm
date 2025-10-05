@@ -60,33 +60,26 @@ def show_board(board, cols = ['white', 'gray'], fontsize = 48):
     print(f"Board with {conflicts(board)} conflicts.")
     plt.show()
 
-# Asumsikan Anda memiliki fungsi conflicts(board) yang sudah didefinisikan
-# def conflicts(board):
-#     ... (kode untuk menghitung konflik) ...
-
 def steepest_ascent_hill_climb(board):
-    """
-    Melakukan steepest ascent hill climbing untuk meminimalkan jumlah konflik.
-    Versi yang sudah diperbaiki.
-    """
+
     n = len(board)
-    current_board = board.copy() # Bekerja dengan salinan agar tidak mengubah input asli
+    current_board = board.copy() # membuat salinan sebagai sample yang akan dipakai
     current_conflicts = conflicts(current_board)
 
     while True:
         next_board = None
         min_next_conflicts = current_conflicts
 
-        # Jelajahi semua tetangga untuk menemukan yang terbaik (paling curam naiknya)
+        # Jelajahi semua tetangga untuk menemukan yang terbaik (titik best curam)
         for col in range(n):
             for row in range(n):
                 # Tidak perlu mengevaluasi state saat ini
                 if current_board[col] == row:
                     continue
 
-                # BUAT SALINAN SEMENTARA untuk evaluasi
+                # buat untuk evaluasi
                 temp_board = current_board.copy()
-                temp_board[col] = row # Ubah posisi Ratu di salinan
+                temp_board[col] = row # Ubah posisi queen di salinan
                 
                 new_conflicts = conflicts(temp_board)
 
@@ -106,10 +99,7 @@ def steepest_ascent_hill_climb(board):
     return current_board
 
 def stochastic_hill_climb(board):
-    """
-    Melakukan stochastic hill climbing untuk meminimalkan jumlah konflik.
-    Versi yang sudah diperbaiki.
-    """
+
     n = len(board)
     current_board = board.copy() # Bekerja dengan salinan agar tidak mengubah input asli
     current_conflicts = conflicts(current_board)
@@ -145,9 +135,7 @@ def stochastic_hill_climb(board):
     return current_board    
 
 def standard_stochastic_hill_climb(board, max_iterations_without_improvement=100):
-    """
-    Melakukan stochastic hill climbing (versi standar/murni).
-    """
+
     n = len(board)
     current_board = board.copy()
     current_conflicts = conflicts(current_board)
@@ -185,11 +173,11 @@ def standard_stochastic_hill_climb(board, max_iterations_without_improvement=100
 
     return current_board
 
-def random_restart_hill_climb(board, max_restarts=100):
+def random_restart_hill_climb(n, max_restarts=100):
     """
     Melakukan random restart hill climbing untuk meminimalkan jumlah konflik.
     """
-    n = len(board)
+    # n sudah diterima sebagai parameter, jadi kita tidak perlu len(board)
     best_board = None
     best_conflicts = float('inf')
 
@@ -209,8 +197,7 @@ def random_restart_hill_climb(board, max_restarts=100):
         if best_conflicts == 0:
             break
 
-    return best_board    
-
+    return best_board
 def simulated_annealing(board, initial_temp=100, cooling_rate=0.99, max_iterations=1000):
     """
     Melakukan simulated annealing untuk meminimalkan jumlah konflik.
@@ -277,67 +264,228 @@ algorithms = {
     "Random-Restart Hill Climb": random_restart_hill_climb,
     "Simulated Annealing": simulated_annealing
 }
+# (Letakkan kode ini setelah atau sebelum loop utama Anda)
+
+# --- BAGIAN 1: COMPARISON (VERSI LENGKAP) ---
 
 # Definisikan parameter eksperimen
-board_sizes = [4, 8]  # Ukuran papan yang akan diuji
-num_runs = 100       # Jumlah pengulangan untuk mendapatkan rata-rata yang akurat
+board_sizes = [4, 8]
+num_runs = 100
 
 # Siapkan list kosong untuk menyimpan semua hasil
 results = []
 
-print("Memulai proses perbandingan algoritma...")
+print("Memulai proses perbandingan algoritma (versi lengkap)...")
 
-# Loop utama untuk menjalankan eksperimen
 for size in board_sizes:
     print(f"\nMenguji untuk papan ukuran {size}x{size}...")
     for name, algorithm_func in algorithms.items():
-        # Siapkan variabel untuk mengakumulasi hasil setiap kali loop dimulai
         total_time = 0
         total_conflicts = 0
-        
-        # Jalankan algoritma yang sama sebanyak num_runs kali
+        successful_runs = 0  # <--- VARIABEL BARU
+
         for _ in range(num_runs):
-            # 1. Buat papan acak baru untuk setiap eksekusi
             initial_board = random_board(size)
-            
-            # 2. Ukur waktu mulai
             start_time = time.time()
             
-            # 3. Jalankan fungsi algoritma
-            final_board = algorithm_func(initial_board)
+            # Khusus untuk Random-Restart, kita panggil dengan parameter n
+            if name == "Random-Restart Hill Climb":
+                # Asumsi board awal tidak digunakan, karena fungsi ini membuat sendiri
+                final_board = algorithm_func(n=size) 
+            else:
+                final_board = algorithm_func(initial_board)
             
-            # 4. Ukur waktu selesai
             end_time = time.time()
             
-            # 5. Akumulasi waktu dan jumlah konflik
+            final_conflicts_count = conflicts(final_board)
+            
             total_time += end_time - start_time
-            total_conflicts += conflicts(final_board)
+            total_conflicts += final_conflicts_count
+            
+            # Hitung jika run ini berhasil (mencapai 0 konflik)
+            if final_conflicts_count == 0: # <--- LOGIKA BARU
+                successful_runs += 1
 
-        # Hitung rata-rata setelah semua pengulangan selesai
         avg_time = total_time / num_runs
         avg_conflicts = total_conflicts / num_runs
-        
-        # Simpan hasil rata-rata ke dalam list
+        success_percentage = (successful_runs / num_runs) * 100 # <--- PERHITUNGAN BARU
+
         results.append({
             "Algorithm": name,
             "Board Size": size,
-            "Average Time (s)": avg_time,
-            "Average Conflicts": avg_conflicts
+            "Avg. Run time": avg_time,
+            "Avg. number of conflicts": avg_conflicts,
+            "Optimal Solution %": success_percentage # <--- KOLOM BARU
         })
         print(f"  - Selesai menguji: {name}")
 
 print("\nProses perbandingan selesai.")
 
-# ==============================================================================
-# BAGIAN 2: TAMPILKAN HASIL MENGGUNAKAN LIBRARY PANDAS
-# ==============================================================================
-
-# Buat DataFrame (tabel) dari list hasil yang sudah dikumpulkan
 df_results = pd.DataFrame(results)
-
-# Atur format tampilan angka agar lebih mudah dibaca (opsional)
 pd.options.display.float_format = '{:.6f}'.format
-
 print("\n--- Hasil Perbandingan Kinerja Algoritma ---")
-# Gunakan .to_string() untuk memastikan semua baris dan kolom tercetak
 print(df_results.to_string())
+
+# --- BAGIAN 2: ALGORITHM CONVERGENCE ---
+
+print("\nMemulai analisis konvergensi algoritma...")
+
+# --- FUNGSI DENGAN HISTORY ---
+
+def steepest_ascent_with_history(board):
+    history = []
+    current_board = board.copy()
+    while True:
+        current_conflicts = conflicts(current_board)
+        history.append(current_conflicts)
+        if current_conflicts == 0: break
+        next_board = None
+        min_next_conflicts = current_conflicts
+        for col in range(len(current_board)):
+            for row in range(len(current_board)):
+                if current_board[col] == row: continue
+                temp_board = current_board.copy()
+                temp_board[col] = row
+                new_conflicts = conflicts(temp_board)
+                if new_conflicts < min_next_conflicts:
+                    min_next_conflicts = new_conflicts
+                    next_board = temp_board
+        if next_board is None: break
+        current_board = next_board
+    return current_board, history
+
+def standard_stochastic_hc_with_history(board, max_iterations_without_improvement=100):
+    history = []
+    current_board = board.copy()
+    iterations_stuck = 0
+    while iterations_stuck < max_iterations_without_improvement:
+        current_conflicts = conflicts(current_board)
+        history.append(current_conflicts)
+        if current_conflicts == 0: break
+        # (Logika Stochastic HC 2 sama persis)
+        random_col = random.randint(0, len(board) - 1)
+        current_row = current_board[random_col]
+        possible_rows = list(range(len(board)))
+        possible_rows.remove(current_row)
+        random_row = random.choice(possible_rows)
+        neighbor_board = current_board.copy()
+        neighbor_board[random_col] = random_row
+        neighbor_conflicts = conflicts(neighbor_board)
+        if neighbor_conflicts < current_conflicts:
+            current_board = neighbor_board
+            iterations_stuck = 0
+        else:
+            iterations_stuck += 1
+    history.append(conflicts(current_board)) # Catat state terakhir
+    return current_board, history
+
+
+def simulated_annealing_with_history(board, initial_temp=100, cooling_rate=0.99, max_iterations=1000):
+    history = []
+    current_board = board.copy()
+    temperature = initial_temp
+    best_board_so_far = current_board.copy()
+    best_conflicts_so_far = conflicts(best_board_so_far)
+
+    for i in range(max_iterations):
+        current_conflicts = conflicts(current_board)
+        history.append(current_conflicts) # Catat konflik state saat ini
+        if current_conflicts == 0: break
+            
+        # --- PERBAIKAN: Mengisi logika SA yang hilang ---
+        random_col = random.randint(0, len(board) - 1)
+        current_row = current_board[random_col]
+        possible_rows = list(range(len(board)))
+        possible_rows.remove(current_row)
+        random_row = random.choice(possible_rows)
+        neighbor_board = current_board.copy()
+        neighbor_board[random_col] = random_row
+        neighbor_conflicts = conflicts(neighbor_board)
+        delta_conflicts = neighbor_conflicts - current_conflicts
+        if delta_conflicts < 0:
+            current_board = neighbor_board
+        else:
+            acceptance_probability = np.exp(-delta_conflicts / temperature)
+            if random.random() < acceptance_probability:
+                current_board = neighbor_board
+        
+        if conflicts(current_board) < best_conflicts_so_far:
+            best_board_so_far = current_board.copy()
+            best_conflicts_so_far = conflicts(best_board_so_far)
+        # -------------------------------------------
+        
+        temperature *= cooling_rate
+    return best_board_so_far, history
+
+
+# --- EKSPERIMEN KONVERGENSI ---
+board_size_8 = random_board(8)
+
+_, steepest_hist = steepest_ascent_with_history(board_size_8.copy())
+_, stochastic2_hist = standard_stochastic_hc_with_history(board_size_8.copy())
+_, sa_hist = simulated_annealing_with_history(board_size_8.copy())
+
+
+plt.figure(figsize=(12, 8))
+plt.plot(steepest_hist, label="Steepest Ascent HC")
+plt.plot(stochastic2_hist, label="Stochastic HC 2") # --- PERBAIKAN: Diaktifkan
+plt.plot(sa_hist, label="Simulated Annealing")      # --- PERBAIKAN: Diaktifkan
+
+plt.title("Konvergensi Algoritma pada Masalah 8-Queens")
+plt.xlabel("Iterasi")
+plt.ylabel("Jumlah Konflik")
+plt.legend()
+plt.grid(True)
+plt.ylim(bottom=0) # Mulai sumbu Y dari 0
+plt.show()
+
+print("Plot konvergensi telah ditampilkan.")
+
+
+# ==============================================================================
+# --- BAGIAN 3: PROBLEM SIZE SCALABILITY ---
+# ==============================================================================
+# --- PERBAIKAN: Menghapus satu blok kode yang terduplikasi ---
+
+print("\nMemulai analisis skalabilitas...")
+
+algorithms_to_scale = {
+    "Steepest Ascent HC": steepest_ascent_hill_climb,
+    "Standard Stochastic HC 2": standard_stochastic_hill_climb
+}
+scalability_sizes = [4, 8, 12, 16, 20]
+scalability_runs = 20
+
+scaling_results = []
+
+for name, algorithm_func in algorithms_to_scale.items():
+    runtimes = []
+    for size in scalability_sizes:
+        total_time = 0
+        print(f"  - Menguji {name} pada n={size}...")
+        for _ in range(scalability_runs):
+            initial_board = random_board(size)
+            start_time = time.time()
+            algorithm_func(initial_board)
+            end_time = time.time()
+            total_time += end_time - start_time
+        avg_time = total_time / scalability_runs
+        runtimes.append(avg_time)
+    scaling_results.append({"name": name, "runtimes": runtimes})
+
+plt.figure(figsize=(10, 7))
+for result in scaling_results:
+    plt.plot(scalability_sizes, result["runtimes"], marker='o', linestyle='-', label=result["name"])
+
+plt.xscale('log')
+plt.yscale('log')
+plt.title("Skalabilitas Algoritma (Plot Log-Log)")
+plt.xlabel("Ukuran Papan (n)")
+plt.ylabel("Rata-rata Waktu Eksekusi (detik)")
+plt.xticks(scalability_sizes, labels=[str(s) for s in scalability_sizes])
+plt.legend()
+plt.grid(True, which="both", ls="--")
+plt.show()
+
+print("Plot skalabilitas telah ditampilkan.")
+
